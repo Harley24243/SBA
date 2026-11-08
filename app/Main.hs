@@ -173,8 +173,8 @@ drawPlayerItem player = Pictures
 
 drawItemDesc :: Item -> Picture
 drawItemDesc item = let d = _desc item in Pictures [
-    Translate (- (sTextSize * fromIntegral (length d) / 3)) (- (cellSize * 4)) (drawText d),
-    Translate (- (sTextSize * 4)) (- (cellSize * 5)) $ drawText "[B]uy / [U]se?"]
+    Translate (- (sTextSize * fromIntegral (length d) / 3)) (- (cellSize * 5)) (drawText d),
+    Translate (- (sTextSize * 4)) (- (cellSize * 6.5)) $ drawText "[B]uy / [U]se?"]
 
 drawPlayer :: Player -> Int -> Picture
 drawPlayer player time = Pictures
@@ -349,7 +349,7 @@ handleEvent event model = case event of
         else model
     EventKey (Char 'c') Up _ _ ->
         if _screen model == Shop
-        then 
+        then
             (\m -> if _screen m == Grid then set timeLeft (_roundTime m) m else m)
             $ (\m -> set screen (if view turn m == 0 then Grid else Shop) m)
             $ set shopSelection (-1)
@@ -367,8 +367,7 @@ handleEvent event model = case event of
         if _screen model == Grid && is >= 0 && is < length its
         then
             let it = its !! is in
-            (\m -> over players (\ps' ->
-                element (view turn m) .~ over items (delete it) (ps' !! view turn m) $ ps') m) $
+            over players (\ps' -> element t .~ over items (filter (/= it)) (ps' !! t) $ ps') $
             case _id it of
                 "Snack" -> over players (element t .~ over health (+1) p) model
                 "Coffee" -> over timeLeft (*2) model
@@ -441,9 +440,10 @@ allItems =
     [ Item "Snack" 200 "+1 health"
     , Item "Coffee" 200 "*2 remaining time"
     , Item "Ink Bottle" 300 "cover some cells for next 3 round"
-    , Item "Pencil" 300 "+1 fill in chance"
-    , Item "Tea" 500 "no time limit for 2 round"
-    , Item "Second Pen" 500 "can fill in 2 digit in a round" ]
+    -- , Item "Pencil" 300 "+1 fill in chance"
+    -- , Item "Tea" 500 "no time limit for 2 round"
+    -- , Item "Second Pen" 500 "can fill in 2 digit in a round" 
+    ]
 
 initModel :: SDB -> StdGen -> Model
 initModel sdb g = Model {
@@ -490,7 +490,7 @@ continue :: Model -> Model
 continue model = (\m -> set shopItems (allItems \\ _items (_players m !! 0)) m) $ genNext model {
     _screen = Shop,
     _selection = [],
-    _players = filter (\p -> _health p > 0) (_players model),
+    _players = fst . foldl (\(ps, i) p -> (p {_index = i} : ps, i+1)) ([], 0 :: Int) $ filter (\p -> _health p > 0) (_players model),
     _turn = 0,
     _timeLeft = roundTime',
     _finished = False
